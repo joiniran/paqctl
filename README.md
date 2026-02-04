@@ -763,7 +763,7 @@ MIT License - See [LICENSE](LICENSE) file.
 
 ## Acknowledgments
 
-- [paqet](https://github.com/SamNet-dev/paqctl) - KCP-based proxy with built-in SOCKS5
+- [paqet](https://github.com/hanselime/paqet) - KCP-based proxy with built-in SOCKS5 (original source)
 - [GFW-knocker](https://github.com/GFW-knocker/gfw_resist_tcp_proxy) - Violated TCP technique
 - [aioquic](https://github.com/aiortc/aioquic) - QUIC protocol implementation
 - [scapy](https://scapy.net/) - Packet manipulation library
@@ -1368,7 +1368,7 @@ https://github.com/SamNet-dev/paqctl
 
 ## قدردانی
 
-- [paqet](https://github.com/SamNet-dev/paqctl) - پروکسی مبتنی بر KCP با SOCKS5 داخلی
+- [paqet](https://github.com/hanselime/paqet) - پروکسی مبتنی بر KCP با SOCKS5 داخلی (سورس اصلی)
 - [GFW-knocker](https://github.com/GFW-knocker/gfw_resist_tcp_proxy) - تکنیک TCP نقض‌شده
 - [aioquic](https://github.com/aiortc/aioquic) - پیاده‌سازی QUIC
 - [scapy](https://scapy.net/) - کتابخانه دستکاری بسته
