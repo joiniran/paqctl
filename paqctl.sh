@@ -480,12 +480,14 @@ detect_network() {
     DETECTED_IFACE=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
     if [ -z "$DETECTED_IFACE" ]; then
         # Skip loopback, docker, veth, bridge, and other virtual interfaces
-        DETECTED_IFACE=$(ip -o link show 2>/dev/null | awk -F': ' '{gsub(/ /,"",$2); print $2}' | grep -vE '^(lo|docker[0-9]|br-|veth|virbr|tun|tap|wg)' | head -1)
+        # Note: grep -v returns exit 1 if no matches, so we add || true for pipefail
+        DETECTED_IFACE=$(ip -o link show 2>/dev/null | awk -F': ' '{gsub(/ /,"",$2); print $2}' | { grep -vE '^(lo|docker[0-9]|br-|veth|virbr|tun|tap|wg)' || true; } | head -1)
     fi
 
     # Local IP
     if [ -n "$DETECTED_IFACE" ]; then
-        DETECTED_IP=$(ip -4 addr show "$DETECTED_IFACE" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | grep -o '[0-9.]*' | head -1)
+        # Note: grep returns exit 1 if no matches, so we add || true for pipefail
+        DETECTED_IP=$(ip -4 addr show "$DETECTED_IFACE" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | { grep -o '[0-9.]*' || true; } | head -1)
     fi
     if [ -z "$DETECTED_IP" ]; then
         DETECTED_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
@@ -508,7 +510,8 @@ detect_network() {
         fi
         if [ -z "$DETECTED_GW_MAC" ] && command -v arp &>/dev/null; then
             # Fallback: parse arp output looking for MAC pattern
-            DETECTED_GW_MAC=$(arp -n "$DETECTED_GATEWAY" 2>/dev/null | grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}' | head -1)
+            # Note: grep returns exit 1 if no matches, so we add || true for pipefail
+            DETECTED_GW_MAC=$(arp -n "$DETECTED_GATEWAY" 2>/dev/null | { grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}' || true; } | head -1)
         fi
     fi
 
@@ -1941,12 +1944,14 @@ detect_network() {
     # Default interface
     DETECTED_IFACE=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
     if [ -z "$DETECTED_IFACE" ]; then
-        DETECTED_IFACE=$(ip -o link show 2>/dev/null | awk -F': ' '{gsub(/ /,"",$2); print $2}' | grep -vE '^(lo|docker[0-9]|br-|veth|virbr|tun|tap|wg)' | head -1)
+        # Note: grep -v returns exit 1 if no matches, so we add || true for pipefail
+        DETECTED_IFACE=$(ip -o link show 2>/dev/null | awk -F': ' '{gsub(/ /,"",$2); print $2}' | { grep -vE '^(lo|docker[0-9]|br-|veth|virbr|tun|tap|wg)' || true; } | head -1)
     fi
 
     # Local IP
     if [ -n "$DETECTED_IFACE" ]; then
-        DETECTED_IP=$(ip -4 addr show "$DETECTED_IFACE" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | grep -o '[0-9.]*' | head -1)
+        # Note: grep returns exit 1 if no matches, so we add || true for pipefail
+        DETECTED_IP=$(ip -4 addr show "$DETECTED_IFACE" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | { grep -o '[0-9.]*' || true; } | head -1)
     fi
     if [ -z "$DETECTED_IP" ]; then
         DETECTED_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
@@ -1966,7 +1971,8 @@ detect_network() {
             DETECTED_GW_MAC=$(ip neigh show "$DETECTED_GATEWAY" 2>/dev/null | awk '/lladdr/{print $5; exit}')
         fi
         if [ -z "$DETECTED_GW_MAC" ] && command -v arp &>/dev/null; then
-            DETECTED_GW_MAC=$(arp -n "$DETECTED_GATEWAY" 2>/dev/null | grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}' | head -1)
+            # Note: grep returns exit 1 if no matches, so we add || true for pipefail
+            DETECTED_GW_MAC=$(arp -n "$DETECTED_GATEWAY" 2>/dev/null | { grep -oE '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}' || true; } | head -1)
         fi
     fi
 
@@ -4155,7 +4161,8 @@ change_config() {
 
     # Detect network
     local _iface=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
-    local _ip=$(ip -4 addr show "$_iface" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | grep -o '[0-9.]*' | head -1)
+    # Note: grep returns exit 1 if no matches, so we add || true for pipefail
+    local _ip=$(ip -4 addr show "$_iface" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | { grep -o '[0-9.]*' || true; } | head -1)
     local _gw=$(ip route show default 2>/dev/null | awk '{print $3; exit}')
     local _gw_mac=""
     [ -n "$_gw" ] && _gw_mac=$(ip neigh show "$_gw" 2>/dev/null | awk '/lladdr/{print $5; exit}')
