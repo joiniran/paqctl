@@ -345,8 +345,20 @@ function Install-Paqet {
 function New-PaqetConfig {
     param(
         [Parameter(Mandatory)][string]$Server,
-        [Parameter(Mandatory)][string]$SecretKey
+        [Parameter(Mandatory)][string]$SecretKey,
+        [string]$TcpLocalFlag = "PA",
+        [string]$TcpRemoteFlag = "PA"
     )
+
+    # Validate TCP flags (uppercase letters F,S,R,P,A,U,E,C, optionally comma-separated)
+    if ($TcpLocalFlag -cnotmatch '^[FSRPAUEC]+(,[FSRPAUEC]+)*$') {
+        Write-Warn "Invalid TCP local flag. Using default: PA"
+        $TcpLocalFlag = "PA"
+    }
+    if ($TcpRemoteFlag -cnotmatch '^[FSRPAUEC]+(,[FSRPAUEC]+)*$') {
+        Write-Warn "Invalid TCP remote flag. Using default: PA"
+        $TcpRemoteFlag = "PA"
+    }
 
     Write-Info "Detecting network..."
     $net = Get-NetworkInfo
@@ -359,6 +371,12 @@ function New-PaqetConfig {
     if (-not $net.GatewayMAC) {
         $net.GatewayMAC = Read-Host "  Enter gateway MAC (aa:bb:cc:dd:ee:ff)"
     }
+
+    # Convert comma-separated flags to YAML array format: PA,A -> ["PA", "A"]
+    $localFlagArray = ($TcpLocalFlag -split ',') | ForEach-Object { "`"$_`"" }
+    $remoteFlagArray = ($TcpRemoteFlag -split ',') | ForEach-Object { "`"$_`"" }
+    $localFlagYaml = "[" + ($localFlagArray -join ", ") + "]"
+    $remoteFlagYaml = "[" + ($remoteFlagArray -join ", ") + "]"
 
     $guidEscaped = "\\Device\\NPF_$($net.Guid)"
     $config = @"
@@ -376,6 +394,9 @@ network:
   ipv4:
     addr: "$($net.IP):0"
     router_mac: "$($net.GatewayMAC)"
+  tcp:
+    local_flag: $localFlagYaml
+    remote_flag: $remoteFlagYaml
 
 server:
   addr: "$Server"
@@ -496,7 +517,8 @@ function New-GfkConfig {
     param(
         [Parameter(Mandatory)][string]$ServerIP,
         [Parameter(Mandatory)][string]$AuthCode,
-        [string]$SocksPort = "1080"
+        [string]$SocksPort = "1080",
+        [string]$TcpFlags = "AP"
     )
 
     # Validate inputs (security: prevent config injection)
@@ -507,6 +529,11 @@ function New-GfkConfig {
     if (-not (Test-SafeString $AuthCode)) {
         Write-Err "Invalid auth code format"
         return $false
+    }
+    # Validate TCP flags (uppercase letters only: F,S,R,P,A,U,E,C)
+    if ($TcpFlags -cnotmatch '^[FSRPAUEC]+$') {
+        Write-Warn "Invalid TCP flags. Using default: AP"
+        $TcpFlags = "AP"
     }
 
     Write-Info "Detecting network..."
@@ -570,6 +597,9 @@ quic_max_stream_data = 1073741824
 quic_auth_code = "$AuthCode"
 quic_certificate = "cert.pem"
 quic_private_key = "key.pem"
+
+# TCP flags for violated packets (default: AP = ACK+PSH)
+tcp_flags = "$TcpFlags"
 
 # SOCKS proxy
 socks_port = $SocksPort
@@ -944,8 +974,19 @@ function Show-Menu {
                     Write-Host ""
                     $server = Read-Host "  Server address (e.g., 1.2.3.4:8443)"
                     $key = Read-Host "  Encryption key (16+ chars)"
+
+                    # Advanced options (hidden by default - just press Enter)
+                    Write-Host ""
+                    Write-Host "  Advanced options (press Enter for defaults - recommended):" -ForegroundColor DarkGray
+                    Write-Host "    TCP flags must match your server config. Only change if server admin says so." -ForegroundColor DarkGray
+                    Write-Host "    Valid flags: S A P R F U E C  |  Multiple: PA,A" -ForegroundColor DarkGray
+                    $tcpLocal = Read-Host "  TCP local flag [PA]"
+                    $tcpRemote = Read-Host "  TCP remote flag [PA]"
+                    if (-not $tcpLocal) { $tcpLocal = "PA" }
+                    if (-not $tcpRemote) { $tcpRemote = "PA" }
+
                     if ($server -and $key) {
-                        if (New-PaqetConfig -Server $server -SecretKey $key) {
+                        if (New-PaqetConfig -Server $server -SecretKey $key -TcpLocalFlag $tcpLocal -TcpRemoteFlag $tcpRemote) {
                             Write-Host ""
                             Write-Host "  Your SOCKS5 proxy: 127.0.0.1:1080" -ForegroundColor Green
                         }
@@ -957,8 +998,17 @@ function Show-Menu {
                     Write-Host ""
                     $server = Read-Host "  Server IP (e.g., 1.2.3.4)"
                     $auth = Read-Host "  Auth code (from server setup)"
+
+                    # Advanced options (hidden by default - just press Enter)
+                    Write-Host ""
+                    Write-Host "  Advanced options (press Enter for defaults - recommended):" -ForegroundColor DarkGray
+                    Write-Host "    TCP flags must match your server config. Only change if server admin says so." -ForegroundColor DarkGray
+                    Write-Host "    Valid flags: S A P R F U E C" -ForegroundColor DarkGray
+                    $tcpFlags = Read-Host "  TCP flags [AP]"
+                    if (-not $tcpFlags) { $tcpFlags = "AP" }
+
                     if ($server -and $auth) {
-                        if (New-GfkConfig -ServerIP $server -AuthCode $auth -SocksPort "14000") {
+                        if (New-GfkConfig -ServerIP $server -AuthCode $auth -SocksPort "14000" -TcpFlags $tcpFlags) {
                             Write-Host ""
                             Write-Host "  Your SOCKS5 proxy: 127.0.0.1:14000" -ForegroundColor Green
                         }
