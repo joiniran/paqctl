@@ -3525,6 +3525,9 @@ update_gfk() {
         "$INSTALL_DIR/venv/bin/pip" install --quiet --upgrade scapy aioquic 2>/dev/null || true
     fi
     rm -rf "$tmp_dir"
+
+    # Also check for management script updates
+    update_management_script
     echo ""
 }
 
